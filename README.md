@@ -1,8 +1,7 @@
 # WPE WebKit binaries
 
 Prebuilt [WPE WebKit](https://wpewebkit.org) for Linux, x64 and arm64, with
-libwpe and WPEBackend-fdo. Built for [DaLang](https://github.com/dariyooo/DaLang)'s
-in-app browser (`flutter_inappwebview_linux`), which needs WPE 2.40 or newer, a
+libwpe and WPEBackend-fdo. Built for `flutter_inappwebview_linux`, which needs WPE 2.40 or newer, a
 version no Ubuntu release packages.
 
 One archive per architecture works on Ubuntu 22.04 and later and inside the
