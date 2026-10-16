@@ -3,6 +3,9 @@
 set -euo pipefail
 
 sudo apt-get update
+# Runner images carry LLVM's libunwind-<n>-dev, which conflicts with the
+# libunwind-dev GStreamer's headers pull in.
+sudo DEBIAN_FRONTEND=noninteractive apt-get purge -y 'libunwind-*-dev' || true
 # libjxl-dev is not in jammy, so JPEG XL is off in build.sh.
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   build-essential cmake ninja-build meson pkg-config ruby ruby-dev python3 \
