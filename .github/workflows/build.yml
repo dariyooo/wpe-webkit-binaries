@@ -1,0 +1,124 @@
+name: Build WPE WebKit
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_MAXSIZE: 5G
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the versions
+        run: cat versions.env >> "$GITHUB_ENV"
+
+      # The image's preinstalled SDKs leave too little disk for WebKit's objects.
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/boost
+          df -h /
+
+      - name: Install the build dependencies
+        run: ./install_deps.sh
+
+      - name: Make the install prefix writable
+        run: sudo mkdir -p /opt/wpe && sudo chown "$USER" /opt/wpe
+
+      # A build that ran out of time saved what it compiled, so the next run
+      # picks up from there.
+      - name: Restore the compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-${{ matrix.arch }}-${{ env.WPE_VERSION }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ matrix.arch }}-${{ env.WPE_VERSION }}-
+            ccache-${{ matrix.arch }}-
+
+      # Stops early enough to leave the job time to save the cache.
+      - name: Build
+        run: timeout --signal=INT 320m ./build.sh
+
+      - name: Save the compiler cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-${{ matrix.arch }}-${{ env.WPE_VERSION }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Pack
+        run: OUT_DIR="$PWD/out" ./package.sh
+
+      - name: Check the archive against the flatpak runtime
+        run: |
+          sudo apt-get install -y flatpak
+          ./check_flatpak.sh out/wpe_webkit_linux_${{ matrix.arch }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wpe_webkit_linux_${{ matrix.arch }}
+          path: out/wpe_webkit_linux_${{ matrix.arch }}.tar.xz
+
+  # Publishes over an existing release of the same version, so a rebuild with a
+  # changed script replaces its files.
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the versions
+        run: cat versions.env >> "$GITHUB_ENV"
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="wpe-webkit-$WPE_VERSION"
+          cat > notes.md <<EOF
+          WPE WebKit for Linux, x64 and arm64, built on Ubuntu 22.04 by
+          [\`build.sh\`](https://github.com/${{ github.repository }}/blob/${{ github.sha }}/build.sh).
+
+          | Library | Version | Source |
+          |---|---|---|
+          | WPE WebKit | \`$WPE_VERSION\` | https://wpewebkit.org/releases/wpewebkit-$WPE_VERSION.tar.xz |
+          | libwpe | \`$LIBWPE_VERSION\` | https://wpewebkit.org/releases/libwpe-$LIBWPE_VERSION.tar.xz |
+          | WPEBackend-fdo | \`$WPEBACKEND_FDO_VERSION\` | https://wpewebkit.org/releases/wpebackend-fdo-$WPEBACKEND_FDO_VERSION.tar.xz |
+
+          Each archive unpacks anywhere and holds the libraries, the helper
+          processes, the headers and relocatable pkg-config files. ICU and
+          libjpeg are bundled. It resolves in Ubuntu 22.04 and later and in
+          the \`org.freedesktop.Platform//$FLATPAK_RUNTIME\` flatpak runtime.
+
+          The only change to WebKit makes a release build honour
+          \`WEBKIT_EXEC_PATH\`. Point it at \`libexec/wpe-webkit-2.0\` and
+          \`WEBKIT_INJECTED_BUNDLE_PATH\` at
+          \`lib/wpe-webkit-2.0/injected-bundle\`, and put \`lib\` on
+          \`LD_LIBRARY_PATH\`.
+          EOF
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --notes-file notes.md
+            gh release upload "$tag" out/*.tar.xz --clobber
+          else
+            gh release create "$tag" out/*.tar.xz --title "WPE WebKit $WPE_VERSION" --notes-file notes.md
+          fi
