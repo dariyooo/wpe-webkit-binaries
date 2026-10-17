@@ -20,4 +20,9 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   libatk-bridge2.0-dev libgbm-dev libdrm-dev libxslt1-dev libtool \
   libinput-dev libudev-dev libseat-dev libwayland-dev wayland-protocols \
   libseccomp-dev bubblewrap xdg-dbus-proxy \
-  g++-12 libstdc++-12-dev
+  g++-12 libstdc++-12-dev lsb-release wget software-properties-common gnupg
+
+# Clang from apt.llvm.org: jammy's own stops at 15
+wget -qO /tmp/llvm.sh https://apt.llvm.org/llvm.sh
+chmod +x /tmp/llvm.sh
+sudo /tmp/llvm.sh 18

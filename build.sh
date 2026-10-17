@@ -13,10 +13,10 @@ PREFIX="${PREFIX:-/opt/wpe}"
 SRC_DIR="${SRC_DIR:-$HOME/src}"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 
-# WebKit wants GCC 12.2+; jammy defaults to 11.4, whose libstdc++ has no
-# std::optional::transform. clang-18 does not help: it picks up that same
-# libstdc++ and fails deep into WebCore.
-export CC=/usr/bin/gcc-12 CXX=/usr/bin/g++-12
+# Clang 18 against jammy's libstdc++ 12, which g++-12 installs. GCC 12 rejects
+# code WebKit 2.54 relies on (a static_assert in a discarded if constexpr), and
+# a newer GCC brings a libstdc++ that Ubuntu 22.04 and the flatpak runtime lack.
+export CC=/usr/bin/clang-18 CXX=/usr/bin/clang++-18
 
 # WebCore's unified sources take 2-3 GB each to compile, so a full-width build
 # runs the machine out of memory and gcc dies with "Killed signal terminated
@@ -82,6 +82,9 @@ PATCH
 # webview renders headless, so the DRM platform is not built.
 #
 # The flatpak runtime has no libavif, so AVIF is off.
+#
+# Precompiled headers are off: each runner rebuilds them with different bytes,
+# so ccache could reuse no object compiled with one.
 [ -f build/build.ninja ] || cmake -S . -B build -G Ninja \
   -DPORT=WPE \
   -DCMAKE_BUILD_TYPE=Release \
@@ -89,6 +92,7 @@ PATCH
   -DCMAKE_INSTALL_LIBDIR=lib \
   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+  -DCMAKE_DISABLE_PRECOMPILE_HEADERS=ON \
   -DENABLE_WPE_PLATFORM=ON \
   -DENABLE_WPE_PLATFORM_DRM=OFF \
   -DUSE_JPEGXL=OFF \
