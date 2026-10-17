@@ -81,7 +81,8 @@ PATCH
 # DRM needs libdrm 2.4.114 for drmModeCreateDumbBuffer; jammy has 2.4.113. The
 # webview renders headless, so the DRM platform is not built.
 #
-# The flatpak runtime has no libavif, so AVIF is off.
+# The flatpak runtime has neither libavif nor enchant, so AVIF and spellchecking
+# are off.
 #
 # Precompiled headers are off: each runner rebuilds them with different bytes,
 # so ccache could reuse no object compiled with one.
@@ -97,6 +98,7 @@ PATCH
   -DENABLE_WPE_PLATFORM_DRM=OFF \
   -DUSE_JPEGXL=OFF \
   -DUSE_AVIF=OFF \
+  -DENABLE_SPELLCHECK=OFF \
   -DENABLE_SPEECH_SYNTHESIS=OFF \
   -DUSE_LIBBACKTRACE=OFF \
   -DENABLE_DOCUMENTATION=OFF \
