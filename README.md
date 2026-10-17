@@ -25,10 +25,12 @@ export WEBKIT_INJECTED_BUNDLE_PATH="<dir>/lib/wpe-webkit-2.0/injected-bundle"
 
 ## Building
 
-`versions.env` names what is built. The **Build WPE WebKit** workflow builds
-both architectures and publishes them as the release `wpe-webkit-<version>`,
-replacing the files of an existing release of that version. A build that runs
-out of time keeps its compiler cache; run it again and it continues.
+`versions.env` names what is built. Every Monday **Check upstream** moves it to
+the newest stable releases on wpewebkit.org and, when one moved, starts **Build
+WPE WebKit**, which builds both architectures and publishes them as the release
+`wpe-webkit-<version>`, replacing the files of an existing release of that
+version. A build that runs out of time keeps its compiler cache; run it again
+and it continues.
 
 Locally, on Ubuntu 22.04:
 

@@ -104,17 +104,6 @@ jobs:
           | WPE WebKit | \`$WPE_VERSION\` | https://wpewebkit.org/releases/wpewebkit-$WPE_VERSION.tar.xz |
           | libwpe | \`$LIBWPE_VERSION\` | https://wpewebkit.org/releases/libwpe-$LIBWPE_VERSION.tar.xz |
           | WPEBackend-fdo | \`$WPEBACKEND_FDO_VERSION\` | https://wpewebkit.org/releases/wpebackend-fdo-$WPEBACKEND_FDO_VERSION.tar.xz |
-
-          Each archive unpacks anywhere and holds the libraries, the helper
-          processes, the headers and relocatable pkg-config files. ICU and
-          libjpeg are bundled. It resolves in Ubuntu 22.04 and later and in
-          the \`org.freedesktop.Platform//$FLATPAK_RUNTIME\` flatpak runtime.
-
-          The only change to WebKit makes a release build honour
-          \`WEBKIT_EXEC_PATH\`. Point it at \`libexec/wpe-webkit-2.0\` and
-          \`WEBKIT_INJECTED_BUNDLE_PATH\` at
-          \`lib/wpe-webkit-2.0/injected-bundle\`, and put \`lib\` on
-          \`LD_LIBRARY_PATH\`.
           EOF
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release edit "$tag" --notes-file notes.md

@@ -1,0 +1,34 @@
+name: Check upstream
+
+on:
+  schedule:
+    # Mondays, 05:00 UTC
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Move versions.env to the newest stable releases
+        id: check
+        run: ./check_upstream.sh
+
+      # A push by the workflow token starts no workflow, so the build is
+      # dispatched.
+      - name: Commit and build
+        if: steps.check.outputs.changed == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(grep -E '^WPE_VERSION=' versions.env | cut -d= -f2)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: build WPE WebKit $version"
+          git push
+          gh workflow run build.yml --ref "${{ github.ref_name }}"
