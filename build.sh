@@ -68,41 +68,12 @@ cd "$SRC_DIR/wpewebkit-$WPE_VERSION"
 python3 - <<'PATCH'
 p = "Source/WebKit/Shared/glib/ProcessExecutablePathGLib.cpp"
 s = open(p).read()
-if "// always honour WEBKIT_EXEC_PATH" not in s:
-    old = '''static String findWebKitProcess(const char* processName)
-{
-#if ENABLE(DEVELOPER_MODE)
-    static const char* execDirectory'''
-    new = '''static String findWebKitProcess(const char* processName)
-{
-    // always honour WEBKIT_EXEC_PATH
-    static const char* execDirectory'''
-    assert old in s, "findWebKitProcess shape changed"
-    s = s.replace(old, new, 1)
-    # findWebKitProcess calls this, so it has to compile too
-    guarded_helper = """#if ENABLE(DEVELOPER_MODE)
-static String getExecutablePath()"""
-    assert guarded_helper in s, "getExecutablePath shape changed"
-    s = s.replace(guarded_helper, "static String getExecutablePath()", 1)
-    s = s.replace("""    return { };
-}
-#endif
-
-static String findWebKitProcess""", """    return { };
-}
-
-static String findWebKitProcess""", 1)
-    old_end = '''            return processPath;
-    }
-#endif
-
-    return FileSystem::pathByAppendingComponent(FileSystem::stringFromFileSystemRepresentation(PKGLIBEXECDIR)'''
-    new_end = '''            return processPath;
-    }
-
-    return FileSystem::pathByAppendingComponent(FileSystem::stringFromFileSystemRepresentation(PKGLIBEXECDIR)'''
-    assert old_end in s, "fallback shape changed"
-    s = s.replace(old_end, new_end, 1)
+guard = "#if ENABLE(DEVELOPER_MODE)"
+marker = "// always honour WEBKIT_EXEC_PATH"
+if marker not in s:
+    # one guard around getExecutablePath, one around the two lookups
+    assert s.count(guard) == 2, "the developer-mode guards in " + p + " changed"
+    s = s.replace(guard, "#if 1 " + marker)
     open(p, "w").write(s)
     print("patched findWebKitProcess")
 PATCH
