@@ -19,16 +19,28 @@ jobs:
         id: check
         run: ./check_upstream.sh
 
-      # A push by the workflow token starts no workflow, so the build is
-      # dispatched.
-      - name: Commit and build
-        if: steps.check.outputs.changed == '1'
+      # GitHub turns a schedule off after 60 days without a commit, so every
+      # check leaves one, with the versions it found. A push by the workflow
+      # token starts no workflow, so the build is dispatched.
+      - name: Log the check, commit and build
         env:
           GH_TOKEN: ${{ github.token }}
+          CHANGED: ${{ steps.check.outputs.changed }}
         run: |
-          version="$(grep -E '^WPE_VERSION=' versions.env | cut -d= -f2)"
+          versions="$(grep -E '^[A-Z_]+_VERSION=' versions.env | tr '\n' ' ')"
+          wpe="$(grep -E '^WPE_VERSION=' versions.env | cut -d= -f2)"
+          mkdir -p build_logs
+          echo "$(date -u '+%F %H:%M') ${versions}$([ "$CHANGED" = 1 ] && echo '(new, building)')" \
+            >> build_logs/check_upstream.log
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git commit -am "chore: build WPE WebKit $version"
+          git add versions.env build_logs/check_upstream.log
+          if [ "$CHANGED" = 1 ]; then
+            git commit -m "chore: build WPE WebKit $wpe"
+          else
+            git commit -m "chore: WPE WebKit $wpe is still the newest"
+          fi
           git push
-          gh workflow run build.yml --ref "${{ github.ref_name }}"
+          if [ "$CHANGED" = 1 ]; then
+            gh workflow run build.yml --ref "${{ github.ref_name }}"
+          fi

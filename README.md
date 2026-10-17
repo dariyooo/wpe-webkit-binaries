@@ -30,7 +30,9 @@ the newest stable releases on wpewebkit.org and, when one moved, starts **Build
 WPE WebKit**, which builds both architectures and publishes them as the release
 `wpe-webkit-<version>`, replacing the files of an existing release of that
 version. A build that runs out of time keeps its compiler cache; run it again
-and it continues.
+and it continues. Each check appends what it found to
+`build_logs/check_upstream.log`, which keeps the schedule from being turned off
+for inactivity.
 
 Locally, on Ubuntu 22.04:
 
