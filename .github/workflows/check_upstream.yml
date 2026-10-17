@@ -15,6 +15,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # GitHub evicts a cache unused for 7 days, and releases are weeks apart.
+      # Restoring the newest one of each architecture counts as a use.
+      - name: Keep the x64 compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache-x64
+          key: ccache-x64-keep-alive
+          restore-keys: ccache-x64-
+      - name: Keep the arm64 compiler cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache-arm64
+          key: ccache-arm64-keep-alive
+          restore-keys: ccache-arm64-
+
       - name: Move versions.env to the newest stable releases
         id: check
         run: ./check_upstream.sh

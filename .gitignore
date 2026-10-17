@@ -1,2 +1,4 @@
 out/
 .ccache/
+.ccache-x64/
+.ccache-arm64/

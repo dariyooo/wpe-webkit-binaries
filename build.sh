@@ -103,3 +103,4 @@ ninja -C build -j"$JOBS"
 ninja -C build install
 
 echo "WPE $(pkg-config --modversion wpe-webkit-2.0) installed to $PREFIX"
+ccache -s
